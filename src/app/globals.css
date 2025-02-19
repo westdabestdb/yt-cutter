@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+@layer base {
+  body {
+    @apply bg-black text-white;
+  }
+}
+
+@layer components {
+  .video-trimmer-track {
+    @apply relative h-8 bg-gray-200 rounded-lg overflow-hidden cursor-pointer;
+  }
+
+  .video-trimmer-progress {
+    @apply absolute h-full bg-blue-100 transition-all duration-150;
+  }
+
+  .video-trimmer-handle {
+    @apply absolute top-0 w-2 h-full bg-blue-500 cursor-ew-resize hover:bg-blue-600 transition-colors;
+  }
+
+  .video-trimmer-current {
+    @apply absolute w-0.5 h-full bg-blue-600 transition-all duration-150 ease-linear;
+  }
+
+  .video-control-button {
+    @apply p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors;
+  }
+}
+
+@layer utilities {
+  .animate-gradient-x {
+    background-size: 200% 100%;
+    animation: gradient-x 15s linear infinite;
+  }
+}
+
+@keyframes gradient-x {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glitch {
+  0% {
+    clip-path: inset(40% 0 61% 0);
+    transform: translate(-2px, 2px);
+  }
+  20% {
+    clip-path: inset(92% 0 1% 0);
+    transform: translate(1px, -3px);
+  }
+  40% {
+    clip-path: inset(43% 0 1% 0);
+    transform: translate(-1px, 3px);
+  }
+  60% {
+    clip-path: inset(25% 0 58% 0);
+    transform: translate(3px, 1px);
+  }
+  80% {
+    clip-path: inset(54% 0 7% 0);
+    transform: translate(-3px, -2px);
+  }
+  100% {
+    clip-path: inset(58% 0 43% 0);
+    transform: translate(2px, 2px);
+  }
+}
+
+.animate-glitch {
+  animation: glitch 500ms infinite linear alternate-reverse;
+} 
