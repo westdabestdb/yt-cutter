@@ -7,6 +7,7 @@ import { extractVideoId, supportedPlatforms, Platform } from '../lib/validations
 import { VideoTrimmer } from './components/video-trimmer';
 import { PlayIcon, PauseIcon, DownloadIcon, ScissorsIcon, Link1Icon, SpeakerLoudIcon, VideoIcon } from '@radix-ui/react-icons';
 import ReactPlayer, { Config } from 'react-player';
+import { PlatformLogo } from './components/platform-logo';
 
 const VideoPlayer = dynamic(() => import('react-player'), {
   ssr: false,
@@ -259,11 +260,11 @@ export default function Home() {
                   {supportedPlatforms.map((platform: Platform) => (
                     <div
                       key={platform.name}
-                      className="flex items-center gap-2 p-2 bg-cyan-500/5 border border-cyan-500/10 rounded-lg"
+                      className="flex items-center gap-3 p-3 bg-cyan-500/5 border border-cyan-500/10 rounded-lg hover:bg-cyan-500/10 hover:border-cyan-500/20 transition-colors duration-300"
                     >
-                      <span className="text-lg">{platform.icon}</span>
-                      <span className="text-xs text-cyan-400/90 font-medium">
-                        {platform.name}
+                      <PlatformLogo platform={platform.name} className="w-6 h-6" />
+                      <span className="text-sm text-cyan-400/90 font-medium">
+                        {platform.displayName}
                       </span>
                     </div>
                   ))}

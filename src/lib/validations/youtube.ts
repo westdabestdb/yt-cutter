@@ -3,7 +3,7 @@ import { z } from 'zod';
 export interface Platform {
   name: string;
   domains: string[];
-  icon: string;
+  displayName: string;
 }
 
 export const videoUrlSchema = z.string().refine((url) => {
@@ -49,12 +49,12 @@ export const extractVideoId = (url: string): string | null => {
 export const supportedPlatforms: Platform[] = [
   {
     name: 'YouTube',
+    displayName: 'YouTube',
     domains: ['youtube.com', 'youtu.be'],
-    icon: '🎥'
   },
   {
     name: 'TikTok',
+    displayName: 'TikTok',
     domains: ['tiktok.com'],
-    icon: '��'
   }
 ] as const; 
