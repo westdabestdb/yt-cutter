@@ -5,36 +5,66 @@ import { randomUUID } from 'crypto';
 import path from 'path';
 import os from 'os';
 
-async function getVideoUrl(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const ytdlp = spawn('yt-dlp', [
-      '--format', 'best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]',
-      '--get-url',
-      '--no-warnings',
-      url
-    ]);
+async function downloadVideo(url: string, isTikTok: boolean): Promise<string> {
+  if (!isTikTok) {
+    // For YouTube, just get the URL
+    return new Promise((resolve, reject) => {
+      const ytdlp = spawn('yt-dlp', [
+        '--format', 'best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]',
+        '--get-url',
+        '--no-warnings',
+        url
+      ]);
 
-    let output = '';
-    let error = '';
+      let output = '';
+      let error = '';
 
-    ytdlp.stdout.on('data', (data) => {
-      output += data.toString();
+      ytdlp.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      ytdlp.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+
+      ytdlp.on('close', (code) => {
+        if (code === 0) {
+          const videoUrl = output.trim().split('\n')[0];
+          resolve(videoUrl);
+        } else {
+          reject(new Error(`Failed to get video URL: ${error}`));
+        }
+      });
     });
+  } else {
+    // For TikTok, download the video to a temporary file
+    const tempDir = os.tmpdir();
+    const tempFilePath = path.join(tempDir, `${randomUUID()}_input.mp4`);
 
-    ytdlp.stderr.on('data', (data) => {
-      error += data.toString();
-    });
+    return new Promise((resolve, reject) => {
+      const ytdlp = spawn('yt-dlp', [
+        '--format', 'best[vcodec^=h264]',
+        '--no-warnings',
+        '--no-playlist',
+        '-o', tempFilePath,
+        url
+      ]);
 
-    ytdlp.on('close', (code) => {
-      if (code === 0) {
-        // Get the first URL (either combined format or video)
-        const videoUrl = output.trim().split('\n')[0];
-        resolve(videoUrl);
-      } else {
-        reject(new Error(`Failed to get video URL: ${error}`));
-      }
+      let error = '';
+
+      ytdlp.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+
+      ytdlp.on('close', (code) => {
+        if (code === 0) {
+          resolve(tempFilePath);
+        } else {
+          reject(new Error(`Failed to download video: ${error}`));
+        }
+      });
     });
-  });
+  }
 }
 
 export async function POST(req: Request) {
@@ -49,16 +79,17 @@ export async function POST(req: Request) {
     }
 
     try {
-      // Get direct URL for video
-      const videoUrl = await getVideoUrl(url);
-      console.log('Got direct URL:', videoUrl);
+      const isTikTok = url.includes('tiktok.com');
+      // Get video URL or downloaded file path
+      const videoSource = await downloadVideo(url, isTikTok);
+      console.log('Video source:', videoSource);
 
       // Create temporary file path for output
       const tempDir = os.tmpdir();
       const outputPath = path.join(tempDir, `${randomUUID()}.${format === 'audio' ? 'mp3' : 'mp4'}`);
       console.log('Output path:', outputPath);
 
-      // Process video directly with FFmpeg
+      // Process video with FFmpeg
       await new Promise<void>((resolve, reject) => {
         const duration = endTime - startTime;
         console.log('Duration:', duration);
@@ -66,7 +97,7 @@ export async function POST(req: Request) {
         const ffmpegArgs = [
           '-y', // Overwrite output files without asking
           '-ss', startTime.toString(),
-          '-i', videoUrl,
+          '-i', videoSource,
           '-t', duration.toString(),
         ];
 
@@ -107,6 +138,15 @@ export async function POST(req: Request) {
         });
 
         ffmpeg.on('close', async (code) => {
+          // Clean up the input file if it was a TikTok video
+          if (isTikTok) {
+            try {
+              await unlink(videoSource);
+            } catch (err) {
+              console.error('Error deleting input file:', err);
+            }
+          }
+
           if (code === 0) {
             console.log('FFmpeg completed successfully');
             resolve();
@@ -118,7 +158,7 @@ export async function POST(req: Request) {
               const transcodeArgs = [
                 '-y',
                 '-ss', startTime.toString(),
-                '-i', videoUrl,
+                '-i', videoSource,
                 '-t', duration.toString(),
                 '-c:v', 'libx264',
                 '-preset', 'veryfast',

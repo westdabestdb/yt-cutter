@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import { extractVideoId } from '../lib/validations/youtube';
 
 interface VideoState {
   url: string;
+  platform: string | null;
   startTime: number;
   endTime: number;
   duration: number;
@@ -77,13 +79,18 @@ export const useVideoStore = create<VideoState>((set, get) => {
 
   return {
     url: '',
+    platform: null,
     startTime: 0,
     endTime: 0,
     duration: 0,
     isProcessing: false,
     exportError: null,
     estimatedSize: { video: null, audio: null },
-    setUrl: (url) => set({ url }),
+    setUrl: (url) => {
+      const videoIdWithPlatform = extractVideoId(url);
+      const platform = videoIdWithPlatform ? videoIdWithPlatform.split(':')[0] : null;
+      set({ url, platform });
+    },
     setStartTime: (startTime) => {
       const state = get();
       const validStartTime = Math.max(0, Math.min(startTime, state.endTime - 1));
@@ -151,6 +158,7 @@ export const useVideoStore = create<VideoState>((set, get) => {
     },
     reset: () => set({
       url: '',
+      platform: null,
       startTime: 0,
       endTime: 0,
       duration: 0,
